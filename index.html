@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>QC Digital Specbook - QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #1a73e8;
+      font-size: 24px;
+    }
+
+    #reader {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .result {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #f1f3f4;
+      border-radius: 10px;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 14px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 8px;
+      background: #1a73e8;
+      color: white;
+      text-align: center;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+  <div class="container">
+
+    <h1>📷 QR SCANNER</h1>
+
+    <p style="text-align:center;">
+      Arahkan kamera ke QR Code
+    </p>
+
+    <div id="reader"></div>
+
+
+    <div
+      class="result"
+      id="hasil"
+    >
+
+      <b>SKU:</b>
+
+      <div id="sku"></div>
+
+      <br>
+
+      <b>Tanggal:</b>
+
+      <div id="tanggal"></div>
+
+      <a
+        id="lanjut"
+        class="button"
+        href="#"
+      >
+        🔎 BUKA QC DIGITAL SPECBOOK
+      </a>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    /*
+      QR FORMAT:
+
+      123456;06/10/2026
+
+      Bagian pertama = SKU
+      Bagian kedua   = Tanggal
+    */
+
+
+    function hasilScan(decodedText) {
+
+      console.log("QR:", decodedText);
+
+
+      // Pecah berdasarkan ;
+
+      const bagian =
+        decodedText.trim().split(";");
+
+
+      // Ambil SKU
+
+      const sku =
+        bagian[0].trim();
+
+
+      // Ambil tanggal
+
+      const tanggal =
+        bagian.length > 1
+          ? bagian[1].trim()
+          : "-";
+
+
+      // Tampilkan hasil
+
+      document.getElementById("sku")
+        .innerText = sku;
+
+
+      document.getElementById("tanggal")
+        .innerText = tanggal;
+
+
+      document.getElementById("hasil")
+        .style.display = "block";
+
+
+      /*
+        NANTI DI SINI KITA MASUKKAN
+        URL WEB APP APPS SCRIPT.
+
+        Contoh:
+
+        https://script.google.com/macros/s/XXXX/exec
+      */
+
+      const webAppURL =
+        "MASUKKAN_URL_WEB_APP_DI_SINI";
+
+
+      const tujuan =
+        webAppURL +
+        "?sku=" +
+        encodeURIComponent(sku) +
+        "&tanggal=" +
+        encodeURIComponent(tanggal);
+
+
+      document.getElementById("lanjut")
+        .href = tujuan;
+
+
+      // Hentikan scanner setelah berhasil
+
+      scanner.clear();
+
+    }
+
+
+    let scanner =
+      new Html5Qrcode("reader");
+
+
+    scanner.start(
+
+      {
+        facingMode: "environment"
+      },
+
+      {
+        fps: 10,
+
+        qrbox: {
+          width: 250,
+          height: 250
+        }
+      },
+
+      function(decodedText) {
+
+        hasilScan(decodedText);
+
+      },
+
+      function(errorMessage) {
+
+        // QR belum terbaca.
+        // Tidak perlu melakukan apa-apa.
+
+      }
+
+    )
+
+    .catch(function(error) {
+
+      console.error(
+        "Camera Error:",
+        error
+      );
+
+      document.getElementById("reader")
+        .innerHTML =
+        "<p style='color:red;text-align:center;'>" +
+        "Kamera tidak dapat digunakan.<br>" +
+        "Pastikan izin kamera diberikan." +
+        "</p>";
+
+    });
+
+  </script>
+
+</body>
+
+</html>
