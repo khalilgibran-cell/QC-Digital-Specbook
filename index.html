@@ -27,7 +27,7 @@
       max-width: 500px;
       margin: auto;
       background: white;
-      padding: 25px;
+      padding: 20px;
       border-radius: 15px;
       box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     }
@@ -35,18 +35,26 @@
     h1 {
       text-align: center;
       color: #1a73e8;
-      font-size: 24px;
+      font-size: 23px;
     }
 
     #reader {
       width: 100%;
       margin-top: 20px;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 12px;
+      color: #666;
     }
 
     .result {
       display: none;
       margin-top: 20px;
-      padding: 15px;
+      padding: 18px;
       background: #f1f3f4;
       border-radius: 10px;
     }
@@ -76,18 +84,21 @@
 
   <div class="container">
 
-    <h1>📷 QR SCANNER</h1>
+    <h1>📷 QC DIGITAL SPECBOOK</h1>
 
-    <p style="text-align:center;">
-      Arahkan kamera ke QR Code
+    <p
+      id="status"
+      class="status"
+    >
+      Menyiapkan kamera...
     </p>
 
     <div id="reader"></div>
 
 
     <div
-      class="result"
       id="hasil"
+      class="result"
     >
 
       <b>SKU:</b>
@@ -99,6 +110,7 @@
       <b>Tanggal:</b>
 
       <div id="tanggal"></div>
+
 
       <a
         id="lanjut"
@@ -115,34 +127,43 @@
 
   <script>
 
-    /*
-      QR FORMAT:
+    let scanner = null;
 
-      123456;06/10/2026
+    let sudahScan = false;
 
-      Bagian pertama = SKU
-      Bagian kedua   = Tanggal
-    */
 
+    // ==========================
+    // PROSES QR
+    // ==========================
 
     function hasilScan(decodedText) {
 
-      console.log("QR:", decodedText);
+      if (sudahScan) {
+        return;
+      }
+
+      sudahScan = true;
 
 
-      // Pecah berdasarkan ;
+      console.log(
+        "QR terbaca:",
+        decodedText
+      );
+
+
+      // Contoh:
+      // 123456;06/10/2026
 
       const bagian =
-        decodedText.trim().split(";");
+        decodedText
+          .trim()
+          .split(";");
 
-
-      // Ambil SKU
 
       const sku =
-        bagian[0].trim();
+        bagian[0]
+          .trim();
 
-
-      // Ambil tanggal
 
       const tanggal =
         bagian.length > 1
@@ -164,13 +185,29 @@
         .style.display = "block";
 
 
+      document.getElementById("status")
+        .innerText =
+        "✅ QR berhasil dibaca";
+
+
+      // Hentikan scanner
+
+      if (scanner) {
+
+        scanner.stop()
+          .then(function() {
+
+            scanner.clear();
+
+          })
+          .catch(function() {});
+
+      }
+
+
       /*
-        NANTI DI SINI KITA MASUKKAN
-        URL WEB APP APPS SCRIPT.
-
-        Contoh:
-
-        https://script.google.com/macros/s/XXXX/exec
+        NANTI KITA ISI DENGAN URL
+        WEB APP APPS SCRIPT.
       */
 
       const webAppURL =
@@ -188,63 +225,101 @@
       document.getElementById("lanjut")
         .href = tujuan;
 
+    }
 
-      // Hentikan scanner setelah berhasil
 
-      scanner.clear();
+    // ==========================
+    // START SCANNER
+    // ==========================
+
+    function mulaiScanner() {
+
+      scanner =
+        new Html5Qrcode("reader");
+
+
+      const config = {
+
+        fps: 15,
+
+        qrbox: function(
+          viewfinderWidth,
+          viewfinderHeight
+        ) {
+
+          const size =
+            Math.floor(
+              Math.min(
+                viewfinderWidth,
+                viewfinderHeight
+              ) * 0.70
+            );
+
+          return {
+            width: size,
+            height: size
+          };
+
+        },
+
+        formatsToSupport: [
+
+          Html5QrcodeSupportedFormats.QR_CODE
+
+        ]
+
+      };
+
+
+      scanner.start(
+
+        {
+          facingMode: {
+            ideal: "environment"
+          }
+        },
+
+        config,
+
+        function(decodedText) {
+
+          hasilScan(decodedText);
+
+        },
+
+        function(errorMessage) {
+
+          // QR belum terbaca.
+          // Tidak perlu menampilkan error.
+
+        }
+
+      )
+
+      .then(function() {
+
+        document.getElementById("status")
+          .innerText =
+          "📷 Kamera aktif — arahkan ke QR";
+
+      })
+
+      .catch(function(error) {
+
+        console.error(error);
+
+        document.getElementById("status")
+          .innerText =
+          "❌ Kamera tidak dapat digunakan.";
+
+      });
 
     }
 
 
-    let scanner =
-      new Html5Qrcode("reader");
+    // Jalankan scanner
 
-
-    scanner.start(
-
-      {
-        facingMode: "environment"
-      },
-
-      {
-        fps: 10,
-
-        qrbox: {
-          width: 250,
-          height: 250
-        }
-      },
-
-      function(decodedText) {
-
-        hasilScan(decodedText);
-
-      },
-
-      function(errorMessage) {
-
-        // QR belum terbaca.
-        // Tidak perlu melakukan apa-apa.
-
-      }
-
-    )
-
-    .catch(function(error) {
-
-      console.error(
-        "Camera Error:",
-        error
-      );
-
-      document.getElementById("reader")
-        .innerHTML =
-        "<p style='color:red;text-align:center;'>" +
-        "Kamera tidak dapat digunakan.<br>" +
-        "Pastikan izin kamera diberikan." +
-        "</p>";
-
-    });
+    mulaiScanner();
 
   </script>
 
