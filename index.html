@@ -233,86 +233,88 @@
     // ==========================
 
     function mulaiScanner() {
+  scanner = new Html5Qrcode("reader");
 
-      scanner =
-        new Html5Qrcode("reader");
+  const config = {
+    fps: 15,
+    qrbox: function(viewfinderWidth, viewfinderHeight) {
+      const size = Math.floor(
+        Math.min(viewfinderWidth, viewfinderHeight) * 0.70
+      );
 
-
-      const config = {
-
-        fps: 15,
-
-        qrbox: function(
-          viewfinderWidth,
-          viewfinderHeight
-        ) {
-
-          const size =
-            Math.floor(
-              Math.min(
-                viewfinderWidth,
-                viewfinderHeight
-              ) * 0.70
-            );
-
-          return {
-            width: size,
-            height: size
-          };
-
-        },
-
-        formatsToSupport: [
-
-          Html5QrcodeSupportedFormats.QR_CODE
-
-        ]
-
+      return {
+        width: size,
+        height: size
       };
+    },
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.QR_CODE
+    ]
+  };
 
+  Html5Qrcode.getCameras()
+    .then(function(cameras) {
 
-      scanner.start(
+      if (!cameras || cameras.length === 0) {
+        throw new Error("Kamera tidak ditemukan oleh browser.");
+      }
 
-        {
-          facingMode: {
-            ideal: "environment"
-          }
-        },
+      // Prioritaskan kamera belakang
+      let kameraBelakang = cameras.find(function(camera) {
+        const label = camera.label.toLowerCase();
 
-        config,
-
-        function(decodedText) {
-
-          hasilScan(decodedText);
-
-        },
-
-        function(errorMessage) {
-
-          // QR belum terbaca.
-          // Tidak perlu menampilkan error.
-
-        }
-
-      )
-
-      .then(function() {
-
-        document.getElementById("status")
-          .innerText =
-          "📷 Kamera aktif — arahkan ke QR";
-
-      })
-
-      .catch(function(error) {
-
-        console.error(error);
-
-        document.getElementById("status")
-          .innerText =
-          "❌ Kamera tidak dapat digunakan.";
-
+        return (
+          label.includes("back") ||
+          label.includes("rear") ||
+          label.includes("environment") ||
+          label.includes("belakang")
+        );
       });
+
+      const cameraId = kameraBelakang
+        ? kameraBelakang.id
+        : cameras[0].id;
+
+      document.getElementById("status").innerText =
+        "📷 Kamera ditemukan — memulai scanner...";
+
+      return scanner.start(
+        cameraId,
+        config,
+        function(decodedText) {
+          hasilScan(decodedText);
+        },
+        function(errorMessage) {
+          // QR belum terbaca
+        }
+      );
+    })
+
+    .then(function() {
+      document.getElementById("status").innerText =
+        "📷 Kamera aktif — arahkan ke QR";
+    })
+
+    .catch(function(error) {
+
+      console.error("ERROR KAMERA:", error);
+
+      let pesan = "";
+
+      if (error && error.name) {
+        pesan += error.name + " - ";
+      }
+
+      if (error && error.message) {
+        pesan += error.message;
+      } else {
+        pesan += String(error);
+      }
+
+      document.getElementById("status").innerText =
+        "❌ ERROR KAMERA: " + pesan;
+    });
+}
 
     }
 
