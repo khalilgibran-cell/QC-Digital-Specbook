@@ -233,87 +233,96 @@
     // ==========================
 
     function mulaiScanner() {
-  scanner = new Html5Qrcode("reader");
 
-  const config = {
-    fps: 15,
-    qrbox: function(viewfinderWidth, viewfinderHeight) {
-      const size = Math.floor(
-        Math.min(viewfinderWidth, viewfinderHeight) * 0.70
-      );
+  document.getElementById("status").innerText =
+    "🔍 Mengecek akses kamera...";
 
-      return {
-        width: size,
-        height: size
-      };
-    },
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.QR_CODE
-    ]
-  };
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
 
-  Html5Qrcode.getCameras()
-    .then(function(cameras) {
+    document.getElementById("status").innerText =
+      "❌ Browser tidak mendukung akses kamera.";
 
-      if (!cameras || cameras.length === 0) {
-        throw new Error("Kamera tidak ditemukan oleh browser.");
-      }
+    return;
+  }
 
-      // Prioritaskan kamera belakang
-      let kameraBelakang = cameras.find(function(camera) {
-        const label = camera.label.toLowerCase();
+  navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: { ideal: "environment" }
+    }
+  })
+  .then(function(stream) {
 
-        return (
-          label.includes("back") ||
-          label.includes("rear") ||
-          label.includes("environment") ||
-          label.includes("belakang")
+    document.getElementById("status").innerText =
+      "✅ Kamera berhasil diakses. Menyiapkan scanner...";
+
+    // Matikan kamera test
+    stream.getTracks().forEach(function(track) {
+      track.stop();
+    });
+
+    // Jalankan QR scanner
+    scanner = new Html5Qrcode("reader");
+
+    const config = {
+      fps: 15,
+      qrbox: function(viewfinderWidth, viewfinderHeight) {
+
+        const size = Math.floor(
+          Math.min(viewfinderWidth, viewfinderHeight) * 0.70
         );
-      });
 
-      const cameraId = kameraBelakang
-        ? kameraBelakang.id
-        : cameras[0].id;
+        return {
+          width: size,
+          height: size
+        };
+      },
 
-      document.getElementById("status").innerText =
-        "📷 Kamera ditemukan — memulai scanner...";
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    };
 
-      return scanner.start(
-        cameraId,
-        config,
-        function(decodedText) {
-          hasilScan(decodedText);
-        },
-        function(errorMessage) {
-          // QR belum terbaca
-        }
-      );
-    })
+    scanner.start(
+      { facingMode: "environment" },
+      config,
 
+      function(decodedText) {
+        hasilScan(decodedText);
+      },
+
+      function(errorMessage) {
+        // QR belum terbaca
+      }
+    )
     .then(function() {
-      document.getElementById("status").innerText =
-        "📷 Kamera aktif — arahkan ke QR";
-    })
 
+      document.getElementById("status").innerText =
+        "📷 KAMERA AKTIF — ARAHKAN KE QR";
+
+    })
     .catch(function(error) {
 
-      console.error("ERROR KAMERA:", error);
-
-      let pesan = "";
-
-      if (error && error.name) {
-        pesan += error.name + " - ";
-      }
-
-      if (error && error.message) {
-        pesan += error.message;
-      } else {
-        pesan += String(error);
-      }
+      console.error(error);
 
       document.getElementById("status").innerText =
-        "❌ ERROR KAMERA: " + pesan;
+        "❌ Scanner gagal: " +
+        (error.message || error.name || error);
+
     });
+
+  })
+
+  .catch(function(error) {
+
+    console.error("CAMERA ERROR:", error);
+
+    document.getElementById("status").innerText =
+      "❌ Kamera gagal: " +
+      (error.name || "Unknown") +
+      " — " +
+      (error.message || error);
+
+  });
 }
 
     }
